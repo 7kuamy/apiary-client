@@ -7,6 +7,8 @@ require 'json'
 require 'apiary/agent'
 require 'apiary/helpers'
 
+require 'net/http'  #fhchen
+
 module Apiary::Command
   # Display preview of local blueprint file
   class Publish
@@ -16,6 +18,7 @@ module Apiary::Command
 
     def initialize(opts)
       @options = OpenStruct.new(opts)
+      @options.url            ||= '.'
       @options.path           ||= '.'
       @options.json           ||= false
       @options.api_host       ||= 'api.apiary.io'
@@ -31,7 +34,14 @@ module Apiary::Command
       @options.message ||= 'Saving API Description Document from apiary-client'
 
       begin
-        @source_path = api_description_source_path(@options.path)
+        # <test>
+        if @options.path != '.'
+          @source_path = api_description_source_path(@options.path)
+          #@source_path = @options.path   #fhchen
+        else
+          @source_url = @options.url
+        end
+        # </test>
       rescue StandardError => e
         abort "#{e.message}"
       end
@@ -55,7 +65,21 @@ module Apiary::Command
 
     def query_apiary
       url = "https://#{@options.api_host}/blueprint/publish/#{@options.api_name}"
-      source = api_description_source(@source_path)
+
+      # <test>
+      if @options.path != '.'
+        source = api_description_source(@source_path)
+      else
+        uri = URI(@source_url)
+        source = Net::HTTP.get(uri)
+      end
+
+      #source = api_description_source(@source_path)
+      
+      #uri = URI(@source_path)
+      #source = Net::HTTP.get(uri)
+      
+      # </test>
 
       return if source.nil?
 
